@@ -10,7 +10,7 @@ import {
   ServiceNowField,
   ServiceNowIncident,
   ServiceNowJournalField,
-  ServiceNowValueDisplay
+  ServiceNowUser
 } from './types';
 
 export function getFieldValue(field?: ServiceNowField): string | null {
@@ -35,13 +35,28 @@ function normalizeValueDisplay(field?: ServiceNowField): {
   };
 }
 
-function normalizeUserRef(field?: ServiceNowField): InternalUserRef | null {
+export function normalizeUserRef(field?: ServiceNowField): InternalUserRef | null {
   if (!field) return null;
 
   return {
     id: getFieldValue(field),
     name: getFieldLabel(field),
-    email: null
+    email: null,
+    userName: null
+  };
+}
+
+export function mapServiceNowUserToInternal(
+  user: ServiceNowUser | null,
+  fallback?: InternalUserRef | null
+): InternalUserRef | null {
+  if (!user && !fallback) return null;
+
+  return {
+    id: user?.sys_id ?? fallback?.id ?? null,
+    name: user?.name ?? fallback?.name ?? null,
+    email: user?.email ?? fallback?.email ?? null,
+    userName: user?.user_name ?? fallback?.userName ?? null
   };
 }
 
@@ -107,5 +122,8 @@ export function mapJournalEntries(items: ServiceNowJournalField[]): {
     if (type === 'work_note') workNotes.push(mapped);
   }
 
-  return { comments, workNotes };
+  return {
+    comments,
+    workNotes
+  };
 }

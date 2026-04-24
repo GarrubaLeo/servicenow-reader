@@ -2,6 +2,7 @@ export interface InternalUserRef {
   id: string | null;
   name: string | null;
   email: string | null;
+  userName?: string | null;
 }
 
 export interface InternalJournalEntry {

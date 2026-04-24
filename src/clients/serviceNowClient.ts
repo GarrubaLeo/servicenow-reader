@@ -4,7 +4,8 @@ import { AppError } from '../shared/errors/appError';
 import {
   ServiceNowIncident,
   ServiceNowJournalField,
-  ServiceNowTableResponse
+  ServiceNowTableResponse,
+  ServiceNowUser
 } from '../modules/tickets/types';
 
 interface FetchIncidentsParams {
@@ -88,6 +89,40 @@ export async function fetchIncidentJournalEntries(
   } catch (error: any) {
     throw new AppError(
       `Erro ao consultar comments/work notes do incident ${incidentSysId}`,
+      error?.response?.status ?? 500,
+      error?.response?.data ?? error?.message
+    );
+  }
+}
+
+export async function fetchUserBySysId(
+  userSysId: string
+): Promise<ServiceNowUser | null> {
+  if (!userSysId) return null;
+
+  try {
+    const response = await httpClient.get<ServiceNowTableResponse<ServiceNowUser>>(
+      `${env.SN_BASE_URL}/api/now/table/sys_user`,
+      {
+        auth: buildAuth(),
+        params: {
+          sysparm_query: `sys_id=${userSysId}`,
+          sysparm_limit: 1,
+          sysparm_fields: [
+            'sys_id',
+            'name',
+            'email',
+            'user_name',
+            'active'
+          ].join(',')
+        }
+      }
+    );
+
+    return response.data.result?.[0] ?? null;
+  } catch (error: any) {
+    throw new AppError(
+      `Erro ao consultar usuário sys_user ${userSysId}`,
       error?.response?.status ?? 500,
       error?.response?.data ?? error?.message
     );

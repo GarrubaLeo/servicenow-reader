@@ -32,6 +32,14 @@ export interface ServiceNowJournalField {
   sys_created_by?: string | null;
 }
 
+export interface ServiceNowUser {
+  sys_id: string;
+  name?: string | null;
+  email?: string | null;
+  user_name?: string | null;
+  active?: string | boolean | null;
+}
+
 export interface ServiceNowTableResponse<T> {
   result: T[];
 }
