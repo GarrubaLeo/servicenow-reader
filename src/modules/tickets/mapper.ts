@@ -1,28 +1,111 @@
-import { InternalTicket } from '../../models/internalTicket';
-import { ServiceNowIncident, ServiceNowReferenceField } from './types';
+import {
+  InternalJournalEntry,
+  InternalPriority,
+  InternalStatus,
+  InternalTicket,
+  InternalUserRef
+} from '../../models/internalTicket';
 
-function extractReferenceValue(
-  field?: ServiceNowReferenceField | string | null
-): string | null {
+import {
+  ServiceNowField,
+  ServiceNowIncident,
+  ServiceNowJournalField,
+  ServiceNowValueDisplay
+} from './types';
+
+export function getFieldValue(field?: ServiceNowField): string | null {
   if (!field) return null;
   if (typeof field === 'string') return field;
   return field.value ?? null;
 }
 
-export function mapServiceNowIncidentToInternal(
+function getFieldLabel(field?: ServiceNowField): string | null {
+  if (!field) return null;
+  if (typeof field === 'string') return field;
+  return field.display_value ?? field.value ?? null;
+}
+
+function normalizeValueDisplay(field?: ServiceNowField): {
+  code: string | null;
+  label: string | null;
+} {
+  return {
+    code: getFieldValue(field),
+    label: getFieldLabel(field)
+  };
+}
+
+function normalizeUserRef(field?: ServiceNowField): InternalUserRef | null {
+  if (!field) return null;
+
+  return {
+    id: getFieldValue(field),
+    name: getFieldLabel(field),
+    email: null
+  };
+}
+
+function normalizeJournalType(
+  element?: string | null
+): 'comment' | 'work_note' | null {
+  if (!element) return null;
+
+  const normalized = element.toLowerCase();
+
+  if (normalized === 'comments') return 'comment';
+  if (normalized === 'work_notes') return 'work_note';
+
+  return null;
+}
+
+export function mapIncidentBase(
   item: ServiceNowIncident
-): InternalTicket {
+): Omit<InternalTicket, 'comments' | 'workNotes'> {
+  const status: InternalStatus = normalizeValueDisplay(item.state);
+  const priority: InternalPriority = normalizeValueDisplay(item.priority);
+
   return {
     source: 'servicenow',
-    externalId: item.sys_id,
-    ticketNumber: item.number,
-    subject: item.short_description ?? '',
-    description: item.description ?? null,
-    status: item.state ?? null,
-    priority: item.priority ?? null,
-    requesterId: extractReferenceValue(item.opened_by),
-    assigneeId: extractReferenceValue(item.assigned_to),
-    createdAt: item.sys_created_on ?? null,
-    updatedAt: item.sys_updated_on ?? null
+    externalId: getFieldValue(item.sys_id) ?? '',
+    ticketNumber: getFieldLabel(item.number) ?? '',
+    subject: getFieldLabel(item.short_description) ?? '',
+    description: getFieldLabel(item.description) ?? null,
+
+    status,
+    priority,
+
+    requester: normalizeUserRef(item.opened_by),
+    assignee: normalizeUserRef(item.assigned_to),
+    caller: normalizeUserRef(item.caller_id),
+
+    createdAt: getFieldValue(item.sys_created_on),
+    updatedAt: getFieldValue(item.sys_updated_on)
   };
+}
+
+export function mapJournalEntries(items: ServiceNowJournalField[]): {
+  comments: InternalJournalEntry[];
+  workNotes: InternalJournalEntry[];
+} {
+  const comments: InternalJournalEntry[] = [];
+  const workNotes: InternalJournalEntry[] = [];
+
+  for (const item of items) {
+    const type = normalizeJournalType(item.element);
+
+    if (!type || !item.value) continue;
+
+    const mapped: InternalJournalEntry = {
+      id: item.sys_id,
+      type,
+      text: item.value,
+      createdAt: item.sys_created_on ?? null,
+      createdBy: item.sys_created_by ?? null
+    };
+
+    if (type === 'comment') comments.push(mapped);
+    if (type === 'work_note') workNotes.push(mapped);
+  }
+
+  return { comments, workNotes };
 }
