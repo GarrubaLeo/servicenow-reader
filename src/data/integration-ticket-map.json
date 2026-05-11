@@ -1,0 +1,15 @@
+[
+  {
+    "id": "c33bfc3d-d3de-45e2-b73e-2da51cb1d997",
+    "createdAt": "2026-05-11T01:18:28.592Z",
+    "updatedAt": "2026-05-11T01:18:28.592Z",
+    "sourceSystem": "servicenow",
+    "sourceTicketId": "262429ddc3340310db781c84e40131a6",
+    "sourceTicketNumber": "INC0010002",
+    "targetSystem": "movidesk",
+    "targetTicketId": 28141,
+    "targetProtocol": "202605002394",
+    "status": "SENT",
+    "lastError": null
+  }
+]

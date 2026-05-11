@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from 'express';
 import ticketsRoutes from './modules/tickets/routes';
+import movideskRoutes from './modules/movidesk/routes';
 import { AppError } from './shared/errors/appError';
 
 export const app = express();
@@ -11,6 +12,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use(ticketsRoutes);
+app.use(movideskRoutes);
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (error instanceof AppError) {
@@ -20,7 +22,10 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     });
   }
 
+  console.error(error);
+
   return res.status(500).json({
-    message: 'Erro interno da aplicação'
+    message: 'Erro interno da aplicação',
+    details: error instanceof Error ? error.message : error
   });
 });
